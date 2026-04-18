@@ -1,74 +1,80 @@
----
-title: NDA Contract Risk Analyser
-emoji: ⚖️
-colorFrom: red
-colorTo: blue
-sdk: streamlit
-sdk_version: "1.35.0"
-app_file: app.py
-pinned: false
-license: mit
----
+# NDA Contract Risk Analyser
 
-# ⚖️ NDA Contract Risk Analyser
+A portfolio project I built to demonstrate an end-to-end AI pipeline for legal document analysis. The app takes an NDA PDF, breaks it down clause by clause, flags the risky ones, and explains why they're risky in plain English — no legal background needed to understand the output.
 
-A graduate-level AI pipeline that analyses NDA contracts for legal risk.
+---
 
 ## What it does
 
-1. **PDF Parsing** — Extracts and segments clauses from an uploaded NDA using `pdfplumber`.
-2. **Risk Classification** — Uses a HuggingFace zero-shot classification model (`facebook/bart-large-mnli`) to assign each clause a risk category (liability, indemnification, termination, penalty, exclusivity, confidentiality) with a confidence score.
-3. **Risk Aggregation** — Computes a weighted overall risk score (0–100) and bands it as Low / Medium / High.
-4. **Plain-English Explanations** — Sends flagged clauses to the Gemini API via LangChain and returns structured explanations of *why* each clause is risky and *what to negotiate*.
-5. **Interactive Dashboard** — Displays everything in a colour-coded Streamlit UI.
+1. You upload an NDA PDF through the web interface
+2. The app extracts and segments all clauses from the document
+3. Each clause gets classified into a risk category with a confidence score using a HuggingFace zero-shot model
+4. The scores are aggregated into an overall risk rating (Low / Medium / High) using worst-clause weighted scoring — so one genuinely dangerous clause always surfaces, it doesn't get diluted by surrounding standard clauses
+5. Flagged clauses are sent to Llama 3.3 via Groq which generates a plain-English explanation of the risk and what to negotiate
+6. Everything is displayed in a colour-coded Streamlit dashboard
+
+---
 
 ## Tech stack
 
-| Layer | Technology | Reason |
+| Layer | Technology | Why |
 |---|---|---|
-| PDF parsing | `pdfplumber` | Superior layout-preserving text extraction vs. pypdf |
-| Clause classification | `facebook/bart-large-mnli` (HuggingFace zero-shot) | No labelled training data needed; interpretable confidence scores |
-| LLM explanations | Gemini 1.5 Flash via `langchain-google-genai` | Fast, generous free tier, LangChain abstraction for vendor flexibility |
-| UI | Streamlit | Rapid prototype-to-demo for data-heavy Python apps |
-| Deployment | Hugging Face Spaces | Native transformers model caching, free hosting |
+| PDF parsing | pdfplumber | Better layout preservation than pypdf for legal documents |
+| Clause classification | facebook/bart-large-mnli | Zero-shot classification, no labelled training data needed |
+| LLM explanations | Llama 3.3 70B via Groq + LangChain | Fast, generous free tier, LangChain abstracts the provider |
+| UI | Streamlit | Fastest way to ship a clean data-heavy Python interface |
+| Deployment | Hugging Face Spaces | Native model caching, free hosting |
 
-## Setup
+---
 
-### Local
+## Risk categories
+
+The classifier assigns each clause to one of six categories:
+
+- **Liability** — clauses that limit or cap what one party owes the other
+- **Indemnification** — clauses that make one party responsible for the other's legal costs
+- **Termination** — conditions under which the agreement can be ended
+- **Penalty** — liquidated damages or financial penalties for breach
+- **Exclusivity** — restrictions on working with third parties or competitors
+- **Confidentiality** — obligations around keeping information secret
+
+Liability and indemnification are weighted highest in the overall score because they carry the most financial exposure in a typical NDA.
+
+---
+
+## Run locally
 
 ```bash
-git clone https://huggingface.co/spaces/YOUR_USERNAME/nda-risk-analyser
-cd nda-risk-analyser
+git clone https://github.com/Bassemkarrout/contract-risk-analyser
+cd contract-risk-analyser
 pip install -r requirements.txt
-export GOOGLE_API_KEY="your-gemini-api-key"
-streamlit run app.py
+export GROQ_API_KEY="your-key-here"
+python -m streamlit run app.py
 ```
 
-### Hugging Face Spaces
+Get a free Groq API key at [console.groq.com](https://console.groq.com) — no credit card needed.
 
-1. Fork this Space.
-2. Add your `GOOGLE_API_KEY` in **Settings → Repository secrets**.
-3. The Space will build automatically. First run downloads the `~400 MB` BART model — subsequent runs use the cache.
+---
 
-## Architecture
+## Known limitations
+
+- Scanned or image-only PDFs won't work — the document needs a text layer for pdfplumber to extract anything
+- Zero-shot classification gets around 60-70% F1 on legal text. The production upgrade would be fine-tuning on CUAD (13,000 labelled contract clauses) which pushes accuracy to 85-90%
+- LLM explanations are AI-generated and not a substitute for actual legal advice
+- The BART model is English-only
+
+---
+
+## Project structure
 
 ```
-app.py  (Streamlit entry point)
-│
+contract_risk_analyser/
+├── app.py                        
 ├── pipeline/
-│   ├── pdf_extractor.py    # pdfplumber → list of clause strings
-│   ├── classifier.py       # HF zero-shot → ClassifiedClause objects
-│   ├── risk_aggregator.py  # weighted scoring → RiskSummary
-│   └── explainer.py        # LangChain + Gemini → plain-English JSON
-│
+│   ├── pdf_extractor.py          
+│   ├── classifier.py             
+│   ├── risk_aggregator.py        
+│   └── explainer.py              
 └── ui/
-    └── dashboard.py        # Streamlit rendering (separated for testability)
+    └── dashboard.py              
 ```
-
-## Limitations & future work
-
-- **Scanned PDFs**: pdfplumber cannot OCR image-only PDFs. A production version would add Tesseract OCR as a fallback.
-- **Classification accuracy**: Zero-shot classification is a pragmatic choice for zero labelled data. Fine-tuning on [CUAD](https://www.atticusprojectai.org/cuad) (13k labelled contract clauses) would substantially improve F1.
-- **LLM hallucination**: Gemini explanations are AI-generated and not a substitute for qualified legal advice.
-- **Multi-lingual NDAs**: The BART model is English-only. `joeddav/xlm-roberta-large-xnli` supports 100+ languages.
-- **Clause segmentation**: The heuristic regex splitter handles standard numbered NDAs. Complex formatting (tables, multi-column) may require a trained segmentation model.

@@ -1,0 +1,19 @@
+# ── Core framework ─────────────────────────────────────────────────────────────
+streamlit>=1.35.0
+
+# ── PDF parsing ────────────────────────────────────────────────────────────────
+pdfplumber>=0.11.0
+
+# ── HuggingFace Transformers (clause classification) ──────────────────────────
+# transformers pulls in torch; specifying cpu-only torch reduces image size on HF Spaces
+transformers>=4.41.0
+torch>=2.3.0          # CPU build is fine; GPU is auto-detected if available
+sentencepiece>=0.2.0  # required by some tokenisers
+
+# ── LangChain + Gemini ─────────────────────────────────────────────────────────
+langchain>=0.2.0
+langchain-core>=0.2.0
+langchain-google-genai>=1.0.5   # ChatGoogleGenerativeAI wrapper
+
+# ── Data / UI utilities ────────────────────────────────────────────────────────
+pandas>=2.2.0

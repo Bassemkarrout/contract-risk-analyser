@@ -1,7 +1,9 @@
 # NDA Contract Risk Analyser
 
-A portfolio project I built to demonstrate an end-to-end AI pipeline for legal document analysis. The app takes an NDA PDF, breaks it down clause by clause, flags the risky ones, and explains why they're risky in plain English — no legal background needed to understand the output.
+A portfolio project I built to demonstrate an end-to-end AI pipeline for legal document analysis. The app takes an NDA PDF, breaks it down clause by clause, flags the risky ones, and explains why they're risky in plain English, no legal background needed to understand the output.
 
+---
+Live on Hugging Face : https://huggingface.co/spaces/bassemkarrout/contract-risk-analyser
 ---
 
 ## What it does
